@@ -8,7 +8,7 @@ bool isPrime(int n)
 
     for (int i = 2; i * i <= n; i++)
     {
-        if (n / i == 0) return false;
+        if (n % i == 0) return false;
     }
     return true;
 }
@@ -19,7 +19,7 @@ int main() {
     cin.tie(nullptr);
 
     int a, b;
-    int sum = 0;
+    long long sum = 0;
     int min_prime = 0;
     cin >> a >> b;
     for (int i = a; i <= b; i++)
