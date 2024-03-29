@@ -57,6 +57,7 @@ int main() {
 
         // 게임판 구성
         vector<vector<int>> grid(n + 1, vector<int>(n + 1));
+
         for (int i = 1; i <= p; i++)
         {
             if (survived[i])
@@ -129,7 +130,8 @@ int main() {
             if (grid[rr][rc] != 0)  // 루돌프가 움직여서 충돌 발생
             {
                 int coll = grid[rr][rc];
-                score[coll] += c;        
+                // cout << "루돌프가 이동해서 " << coll << "과 충돌" << endl;
+                score[coll] += c;
                 stunned[coll] = true;
                 stunned_turns[coll] = 2;    // 루돌프와 충돌한 산타에 대한 처리(점수와 기절)
 
@@ -154,7 +156,12 @@ int main() {
                         auto& [ncsr, ncsc] = santas[nxt_coll];
                         ncsr += rdy; ncsc += rdx;
 
-                        if (!IsValid(ncsr, ncsc)) break;
+                        if (!IsValid(ncsr, ncsc))
+                        {
+                            // cout << nxt_coll << " 탈락!!" << endl;
+                            survived[nxt_coll] = false;
+                            break;
+                        }
                         coll = nxt_coll;
                     }
                 }
@@ -235,7 +242,12 @@ int main() {
                                 auto& [ncsr, ncsc] = santas[nxt_coll];
                                 ncsr += dy[ni]; ncsc += dx[ni];
 
-                                if (!IsValid(ncsr, ncsc)) break;
+                                if (!IsValid(ncsr, ncsc))
+                                {
+                                    // cout << nxt_coll << " 탈락!!" << endl;
+                                    survived[nxt_coll] = false;
+                                    break;
+                                }
                                 coll = nxt_coll;
                             }
                         }
@@ -245,19 +257,20 @@ int main() {
                         }
                     }
                 }
-
-                // for (int i = 1; i <= n; i++)
-                // {
-                //     for (int j = 1; j <= n; j++)
-                //     {
-                //         cout << grid[i][j] << ' ';
-                //     }
-                //     cout << '\n';
-                // }
-
                 // cout << "santa " << i << " [r, c] : " << sr << ", " << sc << endl;
             }
         }
+
+        // for (int i = 1; i <= n; i++)
+        // {
+        //     for (int j = 1; j <= n; j++)
+        //     {
+        //         cout << grid[i][j] << ' ';
+        //     }
+        //     cout << '\n';
+        // }
+        // cout << '\n';
+
 
         // 탈락하지 않은 산타들에게 점수 추가
         for (int i = 1; i <= p; i++)
