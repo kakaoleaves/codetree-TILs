@@ -95,25 +95,30 @@ void UpdateKnightDmg(int id)
     auto& knight = knights.at(id);
     auto& [r, c, h, w, k, dmg] = knight;
 
-    int trap_cnt = 0;
+    int cur_dmg = 0;
     for (int i = r; i < r + h; i++)
     {
         for (int j = c; j < c + w; j++)
         {
-            if (board[i][j] == TRAP) trap_cnt++;
+            if (board[i][j] == TRAP) cur_dmg++;
         }
     }
 
-    k -= trap_cnt;
-    dmg += trap_cnt;
+    if (cur_dmg >= k) knights.erase(id);
+    else
+    {
+        k -= cur_dmg;
+        dmg += cur_dmg;
+    }
 }
 
-bool IsMovePossible(int id, int direction, bool commanded = true)
+bool IsMovePossible(int id, int direction, vector<bool>& visited, bool commanded = true)
 {
     if (knights.find(id) == knights.end()) return false;
 
     const auto& [r, c, h, w, k, dmg] = knights[id];
 
+    // 벽과 범위에 대한 여부 확인
     for (int i = r; i < r + h; i++)
     {
         for (int j = c; j < c + w; j++)
@@ -126,6 +131,7 @@ bool IsMovePossible(int id, int direction, bool commanded = true)
         }
     }
 
+    // 다른 기사와의 충돌 여부 확인
     for (int i = r; i < r + h; i++)
     {
         for (int j = c; j < c + w; j++)
@@ -135,13 +141,20 @@ bool IsMovePossible(int id, int direction, bool commanded = true)
 
             if (kn_board[nr][nc] != 0 && kn_board[nr][nc] != id) // 자신과 다른 기사
             {
-                if (IsMovePossible(kn_board[nr][nc], direction, false) == false) return false;
+                int other_id = kn_board[nr][nc];
+                if (visited[other_id]) continue;
+                visited[other_id] = true;
+                if (!IsMovePossible(other_id, direction, visited, false)) return false;
             }
 		}
 	}
 
+    // 이동 가능하므로 이동
     MoveKnight(id, direction);
-	if (!commanded) UpdateKnightDmg(id);
+
+    // 이동 후 데미지 업데이트 (밀린 기사들에 대한 데미지 업데이트)
+    if (!commanded)
+        UpdateKnightDmg(id);
 
     return true;
 }
@@ -154,39 +167,28 @@ int main() {
     {
         const auto& [id, direction] = cmd;
 
-        if (knights.find(id) == knights.end()) continue; // 사라진 기사는 통과
+        // 사라진 기사는 통과
+        if (knights.find(id) == knights.end()) continue;
 
         // 기사들에 대한 체스판 정보 생성
         kn_board.assign(L + 1, vector<int>(L + 1));
         for (auto const& knight : knights)
         {
-            const auto& [kn_id, kn_value] = knight;
-            const auto& [r, c, h, w, k, dmg] = kn_value;
+			const auto& [kn_id, kn_value] = knight;
+			const auto& [r, c, h, w, k, dmg] = kn_value;
 
             for (int i = r; i < r + h; i++)
             {
                 for (int j = c; j < c + w; j++)
                 {
-                    kn_board[i][j] = kn_id;
-                }
-            }
-        }
+					kn_board[i][j] = kn_id;
+				}
+			}
+		}
 
-        if (!IsMovePossible(id, direction)) continue;
-
-        // 체력이 0 이하인 기사 제거
-        for (auto it = knights.begin(); it != knights.end();)
-        {
-            auto& [kn_id, kn] = *it;
-
-            if (kn.k <= 0) {
-                it = knights.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
+        // 이동 불가능한 경우 통과
+        vector<bool> visited(N + 1, false);
+        if (!IsMovePossible(id, direction, visited)) continue;
     }
 
     for (auto const& knight : knights)
