@@ -18,6 +18,7 @@ struct Knight {
     int h;
     int w;
     int k;
+    int dmg = 0;
 };
 
 int total_dmg = 0;
@@ -32,7 +33,6 @@ const vector<int> dr = { -1, 0, 1, 0 };
 const vector<int> dc = { 0, 1, 0, -1 };
 
 vector<vector<int>> kn_board(41, vector<int>(41));
-
 
 void Init()
 {
@@ -59,7 +59,7 @@ void Init()
     {
         int r, c, h, w, k;
         cin >> r >> c >> h >> w >> k;
-        Knight kn = {r, c, h, w, k};
+        Knight kn = { r, c, h, w, k, 0 };
         knights[i] = kn;
     }
 
@@ -78,52 +78,70 @@ bool IsValid(int r, int c)
     return (1 <= r && r <= L && 1 <= c && c <= L);
 }
 
-void MoveKnight(int i, int d)
+void MoveKnight(int id, int direction)
 {
-    if (knights.find(i) == knights.end()) return;
+    if (knights.find(id) == knights.end()) return;
 
-    auto& knight = knights.at(i);
-    auto& [r, c, h, w, k] = knight;
+    auto& knight = knights.at(id);
+    auto& [r, c, h, w, k, dmg] = knight;
+
+    r += dr[direction];
+    c += dc[direction];
+}
+
+void UpdateKnightDmg(int id)
+{
+    if (knights.find(id) == knights.end()) return;
+    auto& knight = knights.at(id);
+    auto& [r, c, h, w, k, dmg] = knight;
+
     int trap_cnt = 0;
-
-    r += dr[d];
-    c += dc[d];
-
     for (int i = r; i < r + h; i++)
     {
         for (int j = c; j < c + w; j++)
         {
-            if (board[i][j] == TRAP) trap_cnt++;            
+            if (board[i][j] == TRAP) trap_cnt++;
         }
     }
 
     k -= trap_cnt;
-    total_dmg += trap_cnt;
+    dmg += trap_cnt;
 }
 
-bool IsMovePossible(int i, int d)
+bool IsMovePossible(int id, int direction, bool commanded = true)
 {
-    if (knights.find(i) == knights.end()) return false;
+    if (knights.find(id) == knights.end()) return false;
 
-    const auto& [r, c, h, w, k] = knights[i];
+    const auto& [r, c, h, w, k, dmg] = knights[id];
 
     for (int i = r; i < r + h; i++)
     {
         for (int j = c; j < c + w; j++)
         {
-            int nr = r + dr[d];
-            int nc = r + dc[d];
+            int nr = i + dr[direction];
+            int nc = j + dc[direction];
 
             if (!IsValid(nr, nc)) return false; // 범위 초과
             if (board[nr][nc] == WALL) return false; // 벽
-            if (kn_board[nr][nc] != 0 && kn_board[nr][nc] != i) // 자신과 다른 기사
-            {
-                if (IsMovePossible(kn_board[nr][nc], d) == false) return false;
-            }
         }
     }
 
-    MoveKnight(i, d);
+    for (int i = r; i < r + h; i++)
+    {
+        for (int j = c; j < c + w; j++)
+        {
+            int nr = i + dr[direction];
+            int nc = j + dc[direction];
+
+            if (kn_board[nr][nc] != 0 && kn_board[nr][nc] != id) // 자신과 다른 기사
+            {
+                if (IsMovePossible(kn_board[nr][nc], direction, false) == false) return false;
+            }
+		}
+	}
+
+    MoveKnight(id, direction);
+	if (!commanded) UpdateKnightDmg(id);
 
     return true;
 }
@@ -132,35 +150,36 @@ int main() {
     // 여기에 코드를 작성해주세요.
     Init();
 
-    for (auto& cmd : commands)
+    for (auto const& cmd : commands)
     {
-        const auto& [i, d] = cmd;
+        const auto& [id, direction] = cmd;
 
-        if (knights.find(i) == knights.end()) continue; // 사라진 기사는 통과
+        if (knights.find(id) == knights.end()) continue; // 사라진 기사는 통과
 
         // 기사들에 대한 체스판 정보 생성
         kn_board.assign(L + 1, vector<int>(L + 1));
-        for (auto& knight: knights)
+        for (auto const& knight : knights)
         {
             const auto& [kn_id, kn_value] = knight;
-            const auto& [r, c, h, w, k] = kn_value;
+            const auto& [r, c, h, w, k, dmg] = kn_value;
 
             for (int i = r; i < r + h; i++)
             {
                 for (int j = c; j < c + w; j++)
                 {
-                    kn_board[i][j] = kn_id;                    
+                    kn_board[i][j] = kn_id;
                 }
             }
         }
 
-        if (!IsMovePossible(i, d)) continue;
+        if (!IsMovePossible(id, direction)) continue;
 
+        // 체력이 0 이하인 기사 제거
         for (auto it = knights.begin(); it != knights.end();)
         {
             auto& [kn_id, kn] = *it;
 
-            if (kn.k < 0) {
+            if (kn.k <= 0) {
                 it = knights.erase(it);
             }
             else
@@ -170,7 +189,16 @@ int main() {
         }
     }
 
-    cout << total_dmg << '\n';
+    for (auto const& knight : knights)
+    {
+		const auto& [kn_id, kn_value] = knight;
+		const auto& [r, c, h, w, k, dmg] = kn_value;
+
+		total_dmg += dmg;
+	}
+
+    cout << total_dmg << endl;
+
 
     return 0;
 }
