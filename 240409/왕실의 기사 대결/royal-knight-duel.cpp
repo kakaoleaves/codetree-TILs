@@ -21,7 +21,7 @@ struct Knight {
     int dmg = 0;
 };
 
-int total_dmg = 0;
+int ans = 0;
 
 vector<vector<int>> board(41, vector<int>(41));
 map<int, Knight> knights;
@@ -32,9 +32,7 @@ enum { UP, RIGHT, DOWN, LEFT };
 const vector<int> dr = { -1, 0, 1, 0 };
 const vector<int> dc = { 0, 1, 0, -1 };
 
-vector<vector<int>> kn_board(41, vector<int>(41));
-
-void Init()
+void init()
 {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
@@ -42,7 +40,6 @@ void Init()
     cin >> L >> N >> Q;
 
     board.resize(L + 1, vector<int>(L + 1));
-    kn_board.resize(L + 1, vector<int>(L + 1));
     commands.resize(Q);
 
     // 체스판 정보
@@ -69,138 +66,134 @@ void Init()
         cin >> _i >> _d;
         commands[i] = { _i, _d };
     }
-
-    // cout << "Init End" << endl;
 }
 
-bool IsValid(int r, int c)
+bool isOverlap(const Knight& a, const Knight& b)
 {
-    return (1 <= r && r <= L && 1 <= c && c <= L);
+    if (a.r + a.h <= b.r) return false;
+	if (b.r + b.h <= a.r) return false;
+	if (a.c + a.w <= b.c) return false;
+	if (b.c + b.w <= a.c) return false;
+	return true;
 }
 
-void MoveKnight(int id, int direction)
+bool isMovable(int id, int dir, vector<bool>& movable)
 {
-    if (knights.find(id) == knights.end()) return;
+    const auto& kn = knights[id];
+	const auto& [r, c, h, w, k, dmg] = kn;
 
-    auto& knight = knights.at(id);
-    auto& [r, c, h, w, k, dmg] = knight;
+	int nr = r + dr[dir];
+	int nc = c + dc[dir];
 
-    r += dr[direction];
-    c += dc[direction];
-}
+    // 경계를 벗어나는 경우
+	if (nr < 1 || nr + h - 1 > L || nc < 1 || nc + w - 1 > L) return false;
 
-void UpdateKnightDmg(int id)
-{
-    if (knights.find(id) == knights.end()) return;
-    auto& knight = knights.at(id);
-    auto& [r, c, h, w, k, dmg] = knight;
-
-    int cur_dmg = 0;
-    for (int i = r; i < r + h; i++)
+    // 벽이 있는 경우
+    for (int i = nr; i < nr + h; i++)
     {
-        for (int j = c; j < c + w; j++)
+        for (int j = nc; j < nc + w; j++)
         {
-            if (board[i][j] == TRAP) cur_dmg++;
-        }
-    }
-
-    if (cur_dmg >= k) knights.erase(id);
-    else
-    {
-        k -= cur_dmg;
-        dmg += cur_dmg;
-    }
-}
-
-bool IsMovePossible(int id, int direction, vector<bool>& visited, bool commanded = true)
-{
-    if (knights.find(id) == knights.end()) return false;
-
-    const auto& [r, c, h, w, k, dmg] = knights[id];
-
-    // 벽과 범위에 대한 여부 확인
-    for (int i = r; i < r + h; i++)
-    {
-        for (int j = c; j < c + w; j++)
-        {
-            int nr = i + dr[direction];
-            int nc = j + dc[direction];
-
-            if (!IsValid(nr, nc)) return false; // 범위 초과
-            if (board[nr][nc] == WALL) return false; // 벽
-        }
-    }
-
-    // 다른 기사와의 충돌 여부 확인
-    for (int i = r; i < r + h; i++)
-    {
-        for (int j = c; j < c + w; j++)
-        {
-            int nr = i + dr[direction];
-            int nc = j + dc[direction];
-
-            if (kn_board[nr][nc] != 0 && kn_board[nr][nc] != id) // 자신과 다른 기사
-            {
-                int other_id = kn_board[nr][nc];
-                if (visited[other_id]) continue;
-                visited[other_id] = true;
-                if (!IsMovePossible(other_id, direction, visited, false)) return false;
-            }
+			if (board[i][j] == WALL) return false;
 		}
 	}
 
-    // 이동 가능하므로 이동
-    MoveKnight(id, direction);
+    Knight tmp = { nr, nc, h, w, k, dmg };
 
-    // 이동 후 데미지 업데이트 (밀린 기사들에 대한 데미지 업데이트)
-    if (!commanded)
-        UpdateKnightDmg(id);
+    // 다른 기사와 겹치는 경우
+    for (const auto& other : knights)
+    {
+        auto& [oid, okn] = other;
+        if (oid == id) continue;
+        if (isOverlap(tmp, okn) && !isMovable(oid, dir, movable)) return false;
+	}
 
-    return true;
+    movable[id] = true;
+	return true;
+}
+
+void moveKnight(int id, int dir)
+{
+    if (knights.find(id) == knights.end()) return;
+
+    auto& kn = knights.at(id);
+    auto& [r, c, h, w, k, dmg] = kn;
+
+    r += dr[dir];
+    c += dc[dir];
+}
+
+void postMoveProcessing(vector<int>& dmged)
+{
+    for (const auto& id : dmged)
+    {
+        if (knights.find(id) == knights.end()) continue;
+
+        auto& kn = knights.at(id);
+        auto& [r, c, h, w, k, dmg] = kn;
+
+        for (int i = r; i < r + h; i++)
+        {
+            for (int j = c; j < c + w; j++)
+            {
+                if (board[i][j] == TRAP)
+                {
+                    dmg++;
+                    k--;
+                    if (k == 0)
+                    {
+                        knights.erase(id);
+                        break;
+                    }
+                }
+			}
+		}
+	}
+
+    dmged.clear();
 }
 
 int main() {
     // 여기에 코드를 작성해주세요.
-    Init();
+    init();
 
     for (auto const& cmd : commands)
     {
         const auto& [id, direction] = cmd;
 
-        // 사라진 기사는 통과
+        // 사라진 기사는 무시
         if (knights.find(id) == knights.end()) continue;
 
-        // 기사들에 대한 체스판 정보 생성
-        kn_board.assign(L + 1, vector<int>(L + 1));
-        for (auto const& knight : knights)
+        // 이동 가능한지 확인
+        vector<bool> movable(N + 1, false);
+        if (!isMovable(id, direction, movable)) continue;
+
+
+        // 이동
+        for (int i = 1; i <= N; i++)
         {
-			const auto& [kn_id, kn_value] = knight;
-			const auto& [r, c, h, w, k, dmg] = kn_value;
-
-            for (int i = r; i < r + h; i++)
+            if (movable[i])
             {
-                for (int j = c; j < c + w; j++)
-                {
-					kn_board[i][j] = kn_id;
-				}
-			}
-		}
+                 moveKnight(i, direction);
+            }
+        }
 
-        // 이동 불가능한 경우 통과
-        vector<bool> visited(N + 1, false);
-        if (!IsMovePossible(id, direction, visited)) continue;
+        // 함정 처리
+        vector<int> dmged;
+        for (int i = 1; i <= N; i++)
+        {
+			if (movable[i] && i != id) dmged.push_back(i);
+		}
+		postMoveProcessing(dmged);
     }
 
     for (auto const& knight : knights)
     {
-		const auto& [kn_id, kn_value] = knight;
-		const auto& [r, c, h, w, k, dmg] = kn_value;
+        const auto& [id, kn] = knight;
+        const auto& [r, c, h, w, k, dmg] = kn;
+        ans += dmg;
+    }
 
-		total_dmg += dmg;
-	}
-
-    cout << total_dmg << endl;
-
+    cout << ans << endl;
 
     return 0;
 }
