@@ -103,7 +103,8 @@ void CheckAndChangeGun(int pid)
     if (!pos_guns.empty())
     {
         sort(pos_guns.begin(), pos_guns.end(), greater<int>());
-        // 플레이어가 총이 없다면 총 하나를 줍는다.
+
+        // 플레이어가 총이 없다면 가장 공격력이 높은 총 하나를 줍는다.
         if (player.gun_s == 0)
         {
             player.gun_s = pos_guns.front();
@@ -111,12 +112,15 @@ void CheckAndChangeGun(int pid)
         }
         else
         {
-            // 플레이어가 총이 있다면 총을 교체한다.
-            int tmp = player.gun_s;
-            player.gun_s = pos_guns.front();
-            pos_guns.pop_front();
-            pos_guns.push_back(tmp);
-            sort(pos_guns.begin(), pos_guns.end(), greater<int>());
+            // 플레이어가 총이 있다면, 더 공격력이 높은 총이 존재하는 경우 교체한다.
+            if (player.gun_s < pos_guns.front())
+            {
+                int tmp = player.gun_s;
+                player.gun_s = pos_guns.front();
+                pos_guns.pop_front();
+                pos_guns.push_back(tmp);
+                sort(pos_guns.begin(), pos_guns.end(), greater<int>());
+            }
         }
     }
 }
@@ -148,6 +152,7 @@ void Lose(int pid)
         int nr = player.x + dr[player.d];
         int nc = player.y + dc[player.d];
 
+        // 격자 밖인 경우 오른쪽으로 90도 회전
         if (nr < 1 || nr > n || nc < 1 || nc > n)
         {
             player.d += 1;
@@ -155,12 +160,16 @@ void Lose(int pid)
             continue;
         }
 
+        // 방향 적용 (플레이어 존재 여부는 실제로 이동시켜봐야하므로)
         player.x = nr;
         player.y = nc;
+        // 다른 플레이어가 있는 경우 오른쪽으로 90도 회전
         if (IsOtherThere(pid))
         {
+            // 다시 초기 위치로 이동
             player.x -= dr[player.d];
             player.y -= dr[player.d];
+            // 방향 변경
             player.d += 1;
             player.d %= 4;
             continue;
@@ -168,7 +177,7 @@ void Lose(int pid)
         break;
     }
 
-    // 빈 칸으로 이동했으면 총을 줍는다.
+    // 빈 칸으로 이동했으니 총을 줍는다.
     CheckAndChangeGun(pid);
 }
 
