@@ -55,6 +55,7 @@ void Result()
 
 void DeclareAttacker()
 {
+    wr = wc = 0;
     for (int i = 1; i <= n; i++)
     {
         for (int j = 1; j <= m; j++)
@@ -94,6 +95,7 @@ void DeclareAttacker()
 
 void DeclareAttackee()
 {
+    sr = sc = 0;
     for (int i = 1; i <= n; i++)
     {
         for (int j = 1; j <= m; j++)
@@ -133,6 +135,7 @@ void DeclareAttackee()
 
 void AttackerPowerUp()
 {
+    if (wr < 1 || wr > n || wc < 1 || wc > m) return;
     // 공격자의 공격력 n + m만큼 증가
     board[wr][wc] += (n + m);
 }
@@ -151,7 +154,7 @@ void AttackWithLaser(vector<pair<int,int>> path)
         else
         {
             int& vr = vertex.first, &vc = vertex.second;
-            board[vr][vc] -= (board[wr][wc] / 2);
+            board[vr][vc] -= (board[wr][wc] / 2); // 절반만큼 피해
             if (board[vr][vc] < 0) board[vr][vc] = 0;
         }
     }
@@ -161,6 +164,8 @@ void AttackWithShell(vector<pair<int,int>> adj)
 {
     for (auto& vertex : adj)
     {
+        if (vertex == weakest) continue;
+
         if (vertex == strongest)
         {
             board[sr][sc] -= board[wr][wc]; // 공격력만큼 피해
@@ -169,7 +174,7 @@ void AttackWithShell(vector<pair<int,int>> adj)
         else
         {
             int& vr = vertex.first, &vc = vertex.second;
-            board[vr][vc] -= (board[wr][wc] / 2);
+            board[vr][vc] -= (board[wr][wc] / 2); // 절반만큼 피해
             if (board[vr][vc] < 0) board[vr][vc] = 0;
         }
     }
@@ -193,7 +198,6 @@ void Attack()
 
     distance[wr][wc] = 0;
     q.push(weakest);
-
 
     while (!q.empty())
     {
@@ -234,6 +238,9 @@ void Attack()
         }
     }
 
+    effected[wr][wc] = true;
+    effected[sr][sc] = true;
+
     // 경로 역추적
     if (reachable)
     {
@@ -271,7 +278,6 @@ void Attack()
                 }
             }
         }
-        effected[wr][wc] = true; // 공격한 포탑도 기록
 
         AttackWithShell(adj);
     }
@@ -325,19 +331,23 @@ int main() {
     // 여기에 코드를 작성해주세요.
     Init();
 
-    while (turn <= k)
+    for (turn = 1; turn <= k; turn++)
     {
-        turn++;
         // 공격자 결정
         DeclareAttacker();
+
         // 피공격자 결정
         DeclareAttackee();
+
         // 공격자의 공격력 증가
         AttackerPowerUp();
+
         // 공격
         Attack();
+
         // 포탑 정비
         RepairTurret();
+
         // PrintTurret();
         
         // 포탑이 1개가 된다면 그 즉시 중지
@@ -345,6 +355,8 @@ int main() {
     }
 
     Result();
+
+
 
     return 0;
 }
