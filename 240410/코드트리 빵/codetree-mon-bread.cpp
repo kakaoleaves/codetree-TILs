@@ -223,8 +223,6 @@ int main() {
         {
             GoNearestBase(_time);
         }
-
-        if (_time == 10) break;
     }
 
     Conclude();
