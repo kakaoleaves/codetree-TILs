@@ -39,7 +39,7 @@ void Init()
         {
             int power;
             cin >> power;
-            grid[i][j].push_back(power);
+            if (power > 0) grid[i][j].push_back(power);
         }
 
     for (int i = 1; i <= m; i++)
@@ -77,6 +77,7 @@ void MovePlayer(int pid)
         nc = player.y + dc[player.d];
     }
 
+    // 방향 적용
     player.x = nr;
     player.y = nc;
 }
@@ -115,10 +116,9 @@ void CheckAndChangeGun(int pid)
             // 플레이어가 총이 있다면, 더 공격력이 높은 총이 존재하는 경우 교체한다.
             if (player.gun_s < pos_guns.front())
             {
-                int tmp = player.gun_s;
+                pos_guns.push_back(player.gun_s);
                 player.gun_s = pos_guns.front();
                 pos_guns.pop_front();
-                pos_guns.push_back(tmp);
                 sort(pos_guns.begin(), pos_guns.end(), greater<int>());
             }
         }
@@ -128,8 +128,9 @@ void CheckAndChangeGun(int pid)
 void Win(int pid, int point)
 {
     auto& player = players.at(pid);
+    // 포인트를 획득한다
     player.score += point;
-
+    // 승리한 칸에서 총을 획득한다.
     CheckAndChangeGun(pid);
 }
 
@@ -139,12 +140,15 @@ void Lose(int pid)
 
     // 총을 해당 위치에 내려놓는다.
     auto& pos_guns = grid[player.x][player.y];
-    if (player.gun_s)
+    if (player.gun_s > 0)
     {
         pos_guns.push_back(player.gun_s);
         sort(pos_guns.begin(), pos_guns.end(), greater<int>());
         player.gun_s = 0;
     }
+
+    int prev_x = player.x;
+    int prev_y = player.y;
 
     // 바라보는 방향으로 이동한다.
     for (int i = 0; i < 4; i++)
@@ -163,12 +167,13 @@ void Lose(int pid)
         // 방향 적용 (플레이어 존재 여부는 실제로 이동시켜봐야하므로)
         player.x = nr;
         player.y = nc;
+
         // 다른 플레이어가 있는 경우 오른쪽으로 90도 회전
         if (IsOtherThere(pid))
         {
             // 다시 초기 위치로 이동
-            player.x -= dr[player.d];
-            player.y -= dr[player.d];
+            player.x = prev_x;
+            player.y = prev_y;
             // 방향 변경
             player.d += 1;
             player.d %= 4;
@@ -176,17 +181,17 @@ void Lose(int pid)
         }
         break;
     }
-
-    // 빈 칸으로 이동했으니 총을 줍는다.
+    
+    // 이동했다면 총 줍기
     CheckAndChangeGun(pid);
 }
 
 void Fight(int pid)
 {
     const auto& player = players.at(pid);
-    int winner;
-    int loser;    
-    int point;
+    int winner = 0;
+    int loser = 0;
+    int point = 0;
 
     for (const auto& other : players)
     {
@@ -208,6 +213,7 @@ void Fight(int pid)
                 // 같을 때 초기 능력치가 상대방이 더 높을 경우
                 if (other.s > player.s)
                     winner = other.id, loser = pid;
+                // 같을 때 플레이어의 능력치가 더 높을 경우
                 else
                     winner = pid, loser = other.id;
             }
@@ -216,6 +222,7 @@ void Fight(int pid)
             {
                 winner = pid, loser = other.id;
             }
+
             break;
         }
     }
@@ -255,7 +262,6 @@ int main() {
 
     for (int i = 1; i <= k; i++)
     {
-        // 1-1. 플레이어 한 칸 이동
         MoveAllPlayer();
     }
 
