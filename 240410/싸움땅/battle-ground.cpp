@@ -181,24 +181,28 @@ void Fight(int pid)
 
     for (const auto& other : players)
     {
-        if (other.id == pid) continue;
+        if (other.id == pid) continue; // 자기 자신 X
+        // 전투할 상대방을 찾았을 때
         if (other.x == player.x && other.y == player.y)
         {
             int other_total_s = other.s + other.gun_s;
             int player_total_s = player.s + player.gun_s;
             point = abs(other_total_s - player_total_s);
 
+            // 상대방의 능력치가 더 높을 경우
             if (other_total_s > player_total_s)
             {
                 winner = other.id, loser = pid;
             }
             else if (other_total_s == player_total_s)
             {
+                // 같을 때 초기 능력치가 상대방이 더 높을 경우
                 if (other.s > player.s)
                     winner = other.id, loser = pid;
                 else
                     winner = pid, loser = other.id;
             }
+            // 플레이어의 능력치가 더 높을 경우
             else
             {
                 winner = pid, loser = other.id;
@@ -207,8 +211,10 @@ void Fight(int pid)
         }
     }
 
-    Win(winner, point);
+    // 2-2-2. 진 플레이어
     Lose(loser);
+    // 2-2-3. 승리한 플레이어
+    Win(winner, point);
 }
 
 void MoveAllPlayer()
@@ -217,17 +223,19 @@ void MoveAllPlayer()
     for (auto& player : players)
     {
         if (player.id == 0) continue;
-        // 1-1.
+
+        // 1-1. 순차적으로 한 칸 이동한다.
         MovePlayer(player.id);
 
-        if (IsOtherThere(player.id))
+        // 2-1. 플레이어가 없다면 해당 칸에서 총 교체
+        if (!IsOtherThere(player.id))
         {
-            Fight(player.id);
+            CheckAndChangeGun(player.id);
         }
+        // 2-2-1. 플레이어가 있다면 두 플레이어가 싸움
         else
         {
-            // cout << "OTHER NO!" << endl;
-            CheckAndChangeGun(player.id);
+            Fight(player.id);
         }
     }
 }
