@@ -306,6 +306,20 @@ void PrintTurret()
     }
 }
 
+bool CheckGamePossible()
+{
+    int cnt = 0;
+    for (int i = 1; i <= n; i++)
+    {
+        for (int j = 1; j <= m; j++)
+        {
+            if (board[i][j]) cnt++;
+        }
+    }
+
+    return (cnt > 1);
+}
+
 
 int main() {
     // 여기에 코드를 작성해주세요.
@@ -313,6 +327,7 @@ int main() {
 
     while (turn <= k)
     {
+        turn++;
         // 공격자 결정
         DeclareAttacker();
         // 피공격자 결정
@@ -324,8 +339,9 @@ int main() {
         // 포탑 정비
         RepairTurret();
         // PrintTurret();
-
-        turn++;
+        
+        // 포탑이 1개가 된다면 그 즉시 중지
+        if (!CheckGamePossible()) break;
     }
 
     Result();
