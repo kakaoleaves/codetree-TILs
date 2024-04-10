@@ -83,11 +83,11 @@ void PathInSprialOrder()
 
     for (int i = 0; i < len; i++)
     {
-		x += dr[d];
-		y += dc[d];
-		int tmpd = d;
-		if (i == len - 1) tmpd = (d - 1) % 4;
-		chaser_path.push_back({ x, y, tmpd });
+        x += dr[d];
+        y += dc[d];
+        int tmpd = d;
+        if (i == len - 1) tmpd = (d - 1) % 4;
+        chaser_path.push_back({ x, y, tmpd });
     }
 
     d = (d - 1 + 4) % 4;
@@ -107,13 +107,15 @@ void PathInSprialOrder()
 
         if (cnt == 2)
         {
-			cnt = 0;
-			len--;		
+            cnt = 0;
+            len--;
         }
 
         d = (d - 1 + 4) % 4;
     }
 
+    // 마지막에 술래의 방향이 위쪽으로 되어야 함.
+    chaser_path[chaser_path.size() - 1].d = 0;
 }
 
 void Init()
@@ -175,13 +177,14 @@ void MoveRunners()
             nc = rinfo.y + dc[rinfo.d];
 
             // 해당 위치에 술래가 없다면 이동
-            if (nr != chaser.x && nc != chaser.y)
+            if (!(nr == chaser.x && nc == chaser.y))
             {
                 rinfo.x = nr;
-                rinfo.y = nr;
+                rinfo.y = nc;
             }
         }
-        else if (nr != chaser.x || nc != chaser.y)
+        // 격자를 벗어나지 않는 경우, 움직이려는 칸에 술래가 없다면 이동
+        else if (!(nr == chaser.x && nc == chaser.y))
         {
             rinfo.x = nr;
             rinfo.y = nc;
@@ -191,6 +194,7 @@ void MoveRunners()
 
 void MoveChaser()
 {
+    // 술래의 이동 : 경로 따라 이동
     chaser_idx++;
     if (chaser_idx == chaser_path.size()) chaser_idx = 0;
 
@@ -201,17 +205,22 @@ void MoveChaser()
 
 void CatchRunners(int turn)
 {
-    int chaser_x = chaser.x;
-    int chaser_y = chaser.y;
+    // 술래의 시야 범위
+    int eyesight_x = chaser.x + dr[chaser.d] * (EYESIGHT - 1);
+    int eyesight_y = chaser.y + dc[chaser.d] * (EYESIGHT - 1);
 
-    int max_chaser_x = chaser_x + dr[chaser.d] * EYESIGHT;
-    int max_chaser_y = chaser_y + dc[chaser.d] * EYESIGHT;
+    // 범위에 대한 보정
+    if (eyesight_x < 1) eyesight_x = 1;
+    else if (eyesight_x > n) eyesight_x = n;
 
-    if (max_chaser_x < 1) max_chaser_x = 1;
-    else if (max_chaser_x > n) max_chaser_x = n;
+    if (eyesight_y < 1) eyesight_y = 1;
+    else if (eyesight_y > n) eyesight_y = n;
 
-    if (max_chaser_y < 1) max_chaser_y = 1;
-	else if (max_chaser_y > n) max_chaser_y = n;
+    int min_eye_x = min(chaser.x, eyesight_x);
+    int max_eye_x = max(chaser.x, eyesight_x);
+
+    int min_eye_y = min(chaser.y, eyesight_y);
+    int max_eye_y = max(chaser.y, eyesight_y);
 
     vector<int> caught_runners;
     for (auto& runner : runners)
@@ -219,23 +228,28 @@ void CatchRunners(int turn)
         auto& rid = runner.first;
         auto& rinfo = runner.second;
 
-        if (rinfo.x >= chaser_x && rinfo.x <= max_chaser_x && rinfo.y >= chaser_y && rinfo.y <= max_chaser_y)
+        bool is_in_sight = (rinfo.x >= min_eye_x && rinfo.x <= max_eye_x && rinfo.y >= min_eye_y && rinfo.y <= max_eye_y);
+
+        // 시야 내에 있고, 도망자의 위치에 나무가 없다면 잡힘
+        if (is_in_sight && grid[rinfo.x][rinfo.y] == 0)
         {
-            if (grid[rinfo.x][rinfo.y] == 0)
-            {
-				caught_runners.push_back(rid);
-			}
-		}
+            caught_runners.push_back(rid);
+        }
     }
 
+    // 잡힌 사람이 없다면 종료
     if (caught_runners.empty()) return;
 
+    // 잡힌 사람이 존재한다면, 해당 숫자 * t 만큼 점수 추가
     ans += caught_runners.size() * turn;
 
+    // 잡힌 사람 삭제
     for (auto& rid : caught_runners)
     {
-		runners.erase(rid);
-	}
+        runners.erase(rid);
+    }
+
+    caught_runners.clear();
 }
 
 
