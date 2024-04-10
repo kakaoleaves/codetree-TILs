@@ -90,9 +90,6 @@ void DeclareAttacker()
             }
         }
     }
-
-    // 공격자의 공격력 n + m만큼 증가
-    board[wr][wc] += (n + m);
 }
 
 void DeclareAttackee()
@@ -132,6 +129,12 @@ void DeclareAttackee()
             }
         }
     }
+}
+
+void AttackerPowerUp()
+{
+    // 공격자의 공격력 n + m만큼 증가
+    board[wr][wc] += (n + m);
 }
 
 void AttackWithLaser(vector<pair<int,int>> path)
@@ -312,14 +315,15 @@ int main() {
     {
         // 공격자 결정
         DeclareAttacker();
-        // cout << wr << ' ' << wc << endl;
         // 피공격자 결정
         DeclareAttackee();
-        // cout << sr << ' ' << sc << endl;
+        // 공격자의 공격력 증가
+        AttackerPowerUp();
         // 공격
         Attack();
         // 포탑 정비
         RepairTurret();
+        // PrintTurret();
 
         turn++;
     }
