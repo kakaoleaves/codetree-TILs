@@ -1,5 +1,4 @@
 #include <iostream>
-#include <unordered_map>
 #include <vector>
 #include <algorithm>
 
@@ -17,8 +16,6 @@ vector<int> tails(MAX_N, -1); // 각 벨트의 tail
 
 vector<int> prv(MAX_M, -1); // 각 물건의 이전
 vector<int> nxt(MAX_M, -1); // 각 물건의 이후
-
-unordered_map<int, int> belt_num; // 각 물건이 소속된 벨트 표시
 vector<int> counts(MAX_M, 0); // 각 벨트에 존재하는 개수 표기
 
 void BuildFactory()
@@ -31,7 +28,6 @@ void BuildFactory()
         cin >> b_num;
 
         // 소속된 벨트 등록, 벨트의 물건 개수 증가
-        belt_num[id] = b_num;
         counts[b_num]++;
 
         // 해당 벨트에 head가 없다면 head와 tail로 추가
@@ -67,15 +63,7 @@ void MoveAll()
 
     // 아니라면 m_src에 있는 모든 물건을 m_dst 앞으로 옮겨야함
 
-    // 1. 소속 변경 2. head 변경 3. tail 변경 4. count 변경
-
-    // 1. 모든 물건의 소속 변경
-    int cur = heads[m_src];
-    while (cur != -1)
-    {
-		belt_num[cur] = m_dst;
-		cur = nxt[cur];
-	}
+    // 1. head 변경 2. tail 변경 4. count 변경
 
     // dst의 head, tail에 대한 작업
     // m_dst에 물건이 없었다면, head와 tail이 그대로 따라옴
@@ -144,9 +132,6 @@ void SwapFront()
         // src의 head가 되었으므로 이전, 이후 모두 없음
         nxt[heads[m_src]] = -1;
 
-        // 소속 변경 (하나만 해도 된다)
-        int cur = heads[m_src];
-        belt_num[cur] = m_src;
 
         // count 변경
         counts[m_src]++;
@@ -178,7 +163,6 @@ void SwapFront()
 
         // 소속 변경 (하나만 해도 된다)
         int cur = heads[m_dst];
-        belt_num[cur] = m_dst;
 
         // count 변경
         counts[m_src]--;
@@ -195,10 +179,6 @@ void SwapFront()
         heads[m_src] = dst_head;
         heads[m_dst] = src_head;
 
-        // 서로의 head의 소속 변경
-        belt_num[src_head] = m_dst;
-        belt_num[dst_head] = m_src;
-
         // 서로의 head의 이후 변경 (이전은 변경할 필요 없음)
         int src_nxt = nxt[src_head];
         int dst_nxt = nxt[dst_head];
@@ -210,11 +190,13 @@ void SwapFront()
         if (src_head == tails[m_src])
         {
 			tails[m_src] = dst_head;
+            nxt[dst_head] = -1; // tail이 되었으므로 이후는 X
         }
 
         if (dst_head == tails[m_dst])
 		{
             tails[m_dst] = src_head;
+            nxt[src_head] = -1; // tail이 되었으므로 이후는 X
         }
         // count는 그대로
     }
@@ -241,15 +223,12 @@ void Divide()
     counts[m_dst] += cnt;
     counts[m_src] -= cnt;
 
-    // 개수만큼 선물 옮기기(소속 변경)
-    int cur = heads[m_src];
-    while (cnt--)
-    {
-        belt_num[cur] = m_dst;
-        cur = nxt[cur];
-    }
-
     // 최종 cur은 floor(n / 2) 다음의 물건, 즉 이 부분이 src의 head가 된다.
+    int cur = heads[m_src];
+    for (int i = 0; i < cnt; i++)
+    {
+		cur = nxt[cur];
+	}
 
     // dst의 head 변경
     // dst가 비어있다면 head와 tail 모두 변경
