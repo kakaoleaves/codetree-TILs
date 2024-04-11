@@ -61,191 +61,123 @@ void MoveAll()
     int m_src, m_dst;
     cin >> m_src >> m_dst;
 
-    // src 벨트의 길이가 0이라면 아무것도 하지 않음
+    // src에 물건이 없다면 pass
     if (counts[m_src] == 0)
     {
         cout << counts[m_dst] << endl;
         return;
     }
 
-    // src 벨트의 head와 tail을 가져옴
-    int src_head = heads[m_src];
-    int src_tail = tails[m_src];
-
-    // dst 벨트의 head가 존재한다면
-    if (counts[m_dst] > 0)
+    // dst에 물건이 없다면 그대로
+    if (counts[m_dst] == 0)
     {
-        // dst 벨트의 head에 src 벨트의 tail을 연결
-        prv[heads[m_dst]] = src_tail;
-        nxt[src_tail] = heads[m_dst];
-
-        // dst 벨트의 head 갱신
-        heads[m_dst] = src_head;
-    }
+        heads[m_dst] = heads[m_src];
+        tails[m_dst] = tails[m_src];
+	}
     else
     {
-        // dst 벨트의 head가 존재하지 않는다면
-        tails[m_dst] = src_tail;
-        heads[m_dst] = src_head;
+        int orig_head = heads[m_dst];
+        // m_dst의 head와 교체
+        heads[m_dst] = heads[m_src];
+        // m_src의 tail과 m_dst의 head 연결
+        int src_tail = tails[m_src];
+        nxt[src_tail] = orig_head;
+        prv[orig_head] = src_tail;
     }
 
-    // src 벨트의 head와 tail 초기화
-    heads[m_src] = -1;
-    tails[m_src] = -1;
+    // head, tail, count 갱신
+    heads[m_src] = tails[m_src] = -1;
 
-    // src 벨트의 개수를 dst 벨트로 이동
     counts[m_dst] += counts[m_src];
-    counts[m_src] = 0;
+	counts[m_src] = 0;
 
     cout << counts[m_dst] << endl;
 }
 
-void SwapFront()
+// 해당 벨트의 head 제거
+int RemoveHead(int b_num)
+{
+    // 불가능하면 pass
+    if (counts[b_num] == 0)
+        return -1;
+
+    // 노드가 1개라면
+    // head, tail 전부 삭제 후 반환
+    if (counts[b_num] == 1)
+    {
+        int id = heads[b_num];
+        heads[b_num] = tails[b_num] = -1;
+        counts[b_num] = 0;
+        return id;
+    }
+
+    // head 변경
+    int hid = heads[b_num];
+    int next_head = nxt[hid];
+    nxt[hid] = prv[next_head] = -1;
+    counts[b_num]--;
+    heads[b_num] = next_head;
+
+    return hid;
+}
+
+// 해당 벨트에 head 추가
+void PushHead(int b_num, int hid)
+{
+    if (hid == -1)
+        return;
+
+    if (counts[b_num] == 0)
+    {
+        heads[b_num] = tails[b_num] = hid;
+		counts[b_num] = 1;
+    }
+    else
+    {
+        int orig_head = heads[b_num];
+        nxt[hid] = orig_head;
+        prv[orig_head] = hid;
+        heads[b_num] = hid;
+        counts[b_num]++;
+    }
+}
+
+void Swap()
 {
     int m_src, m_dst;
     cin >> m_src >> m_dst;
 
-    if (counts[m_src] == 0 && counts[m_dst] == 0)
-    {
-        cout << counts[m_dst] << endl;
-        return;
-    }
-
-    else if (counts[m_src] == 0)
-    {
-        // dst -> src 하나 이동
-        int dst_head = heads[m_dst];
-
-        if (counts[m_dst] == 1) // dst 벨트에 물건이 하나만 존재하는 경우
-        {
-			heads[m_dst] = -1;
-			tails[m_dst] = -1;
-		}
-        else
-        {
-			heads[m_dst] = nxt[dst_head];
-            prv[heads[m_dst]] = -1;
-		}
-
-        heads[m_src] = dst_head;
-        tails[m_src] = dst_head;
-        prv[heads[m_src]] = -1;
-        nxt[heads[m_src]] = -1;
-
-        counts[m_src] = 1;
-        counts[m_dst] -= 1;
-    }
-
-    else if (counts[m_dst] == 0)
-    {
-		// src -> dst 하나 이동
-		int src_head = heads[m_src];
-
-		if (counts[m_src] == 1) // src 벨트에 물건이 하나만 존재하는 경우
-		{
-            heads[m_src] = -1;
-            tails[m_src] = -1;
-        }
-        else
-        {
-			heads[m_src] = nxt[src_head];
-			prv[heads[m_src]] = -1;
-		}
-
-        heads[m_dst] = src_head;
-        tails[m_dst] = src_head;
-        prv[heads[m_dst]] = -1;
-        nxt[heads[m_dst]] = -1;
-
-        counts[m_dst] = 1;
-        counts[m_src] -= 1;
-    }
-
-    else
-    {
-        // src <-> dst
-        int src_head = heads[m_src];
-        int dst_head = heads[m_dst];
-
-        if (counts[m_src] == 1)
-        {
-            heads[m_src] = dst_head;
-            tails[m_src] = dst_head;
-            prv[heads[m_src]] = -1;
-            nxt[tails[m_src]] = -1;
-        }
-        else
-        {
-            heads[m_src] = dst_head;
-            prv[heads[m_src]] = -1;
-            nxt[heads[m_src]] = nxt[src_head];
-            prv[nxt[heads[m_src]]] = heads[m_src];
-		}
-        
-        if (counts[m_dst] == 1)
-        {
-            heads[m_dst] = src_head;
-			tails[m_dst] = src_head;
-			prv[heads[m_dst]] = -1;
-			nxt[tails[m_dst]] = -1;
-        }
-        else
-        {
-            heads[m_dst] = src_head;
-			prv[heads[m_dst]] = -1;
-			nxt[heads[m_dst]] = nxt[dst_head];
-			prv[nxt[heads[m_dst]]] = heads[m_dst];
-        }
-    }
+    int src_head = RemoveHead(m_src);
+    int dst_head = RemoveHead(m_dst);
+    PushHead(m_src, dst_head);
+    PushHead(m_dst, src_head);
 
     cout << counts[m_dst] << endl;
 }
 
 void Divide()
 {
-	int m_src, m_dst;
-	cin >> m_src >> m_dst;
+    int m_src, m_dst;
+    cin >> m_src >> m_dst;
 
-    if (counts[m_src] <= 1)
+    // 순서대로 src에서 박스들을 뺀다.
+    int cnt = counts[m_src];
+    vector<int> boxes;
+
+    for (int i = 0; i < cnt / 2; i++)
     {
-		cout << counts[m_dst] << endl;
-		return;
+		int box = RemoveHead(m_src);
+		boxes.push_back(box);
 	}
 
-    int cnt = counts[m_src] / 2;
+    reverse(boxes.begin(), boxes.end());
 
-    int tmp_head = heads[m_src];
-    int tmp_tail = heads[m_src];
-
-    for (int i = 0; i < cnt - 1; i++)
-        tmp_tail = nxt[tmp_tail];
-
-    heads[m_src] = nxt[tmp_tail];
-    prv[heads[m_src]] = -1;
-    nxt[tmp_tail] = -1;
-
-    if (counts[m_dst] == 0)
+    for (int i = 0; i < boxes.size(); i++)
     {
-        // dst 벨트에 물건이 없는 경우
-        heads[m_dst] = tmp_head;
-        tails[m_dst] = tmp_tail;
-        prv[heads[m_dst]] = -1;
-        nxt[tails[m_dst]] = -1;
-    }
-    else
-    {
-        // dst 벨트에 물건이 있는 경우
-        prv[heads[m_dst]] = tmp_tail;
-        nxt[tmp_tail] = heads[m_dst];
+		PushHead(m_dst, boxes[i]);
+	}
 
-        heads[m_dst] = tmp_head;
-        prv[heads[m_dst]] = -1;
-    }
-
-    counts[m_dst] += cnt;
-    counts[m_src] -= cnt;
-
-    cout << counts[m_dst] << endl;   
+    cout << counts[m_dst] << endl;
 }
 
 void GetGiftInfo()
@@ -280,7 +212,7 @@ int main() {
             MoveAll();
             break;
         case 300:
-            SwapFront();
+            Swap();
             break;
         case 400:
             Divide();
