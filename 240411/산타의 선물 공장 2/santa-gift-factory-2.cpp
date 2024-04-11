@@ -48,10 +48,10 @@ void BuildFactory()
         {
             // 현재 tail과 id 연결
             int cur_tail = tails[b_num];
-            nxt[cur_tail] = id; 
+            nxt[cur_tail] = id;
             prv[id] = cur_tail;
             // 벨트의 tail 갱신
-            tails[b_num] = id; 
+            tails[b_num] = id;
         }
     }
 }
@@ -61,200 +61,191 @@ void MoveAll()
     int m_src, m_dst;
     cin >> m_src >> m_dst;
 
-    // m_src가 비어있다면 옮길 필요 없음
-    if (heads[m_src] == -1)
+    // src 벨트의 길이가 0이라면 아무것도 하지 않음
+    if (counts[m_src] == 0)
     {
         cout << counts[m_dst] << endl;
         return;
     }
 
-    // 아니라면 m_src에 있는 모든 물건을 m_dst 앞으로 옮겨야함
+    // src 벨트의 head와 tail을 가져옴
+    int src_head = heads[m_src];
+    int src_tail = tails[m_src];
 
-    // dst가 비어있다면
-    if (heads[m_dst] == -1)
+    // dst 벨트의 head가 존재한다면
+    if (counts[m_dst] > 0)
     {
-        heads[m_dst] = heads[m_src];
-		tails[m_dst] = tails[m_src];
-    }
+        // dst 벨트의 head에 src 벨트의 tail을 연결
+        prv[heads[m_dst]] = src_tail;
+        nxt[src_tail] = heads[m_dst];
 
-    // dst가 비어있지 않다면
+        // dst 벨트의 head 갱신
+        heads[m_dst] = src_head;
+    }
     else
     {
-		// src의 tail을 dst의 head 앞에 연결
-		nxt[tails[m_src]] = heads[m_dst];
-		prv[heads[m_dst]] = tails[m_src];
+        // dst 벨트의 head가 존재하지 않는다면
+        tails[m_dst] = src_tail;
+        heads[m_dst] = src_head;
+    }
 
-		// dst의 head 변경
-		heads[m_dst] = heads[m_src];
-	}
+    // src 벨트의 head와 tail 초기화
+    heads[m_src] = -1;
+    tails[m_src] = -1;
 
-    // src의 head와 tail 초기화
-	heads[m_src] = -1;
-	tails[m_src] = -1;
+    // src 벨트의 개수를 dst 벨트로 이동
+    counts[m_dst] += counts[m_src];
+    counts[m_src] = 0;
 
-	// count 갱신
-	counts[m_dst] += counts[m_src];
-	counts[m_src] = 0;
-
-	cout << counts[m_dst] << endl;
+    cout << counts[m_dst] << endl;
 }
 
-// src, dst의 head끼리 swap
 void SwapFront()
 {
     int m_src, m_dst;
     cin >> m_src >> m_dst;
 
-    // 둘 다 비어 있는 경우
-    if (heads[m_src] == -1 && heads[m_dst] == -1)
-    {
-        cout << counts[m_dst] << endl;
-		return;
-	}
-
-    // src가 비어있는 경우
-    else if (heads[m_src] == -1)
-    {
-        // dst의 head가 src로 이동한다
-        heads[m_src] = tails[m_src] = heads[m_dst];
-
-        // dst의 head는 기존 head의 다음이 된다
-        // 만약 dst의 head가 tail이라면 tail도 변경
-        if (heads[m_dst] == tails[m_dst])
-        {
-            heads[m_dst] = -1;
-            tails[m_dst] = -1;
-            // prv, nxt는 변경할 필요 X
-        }
-        // 아니라면 head만 변경
-        else
-        {
-            heads[m_dst] = nxt[heads[m_dst]];
-            prv[heads[m_dst]] = -1; // head가 되었으므로 이전은 없음
-        }
-
-        // src의 head가 되었으므로 이전, 이후 모두 없음
-        nxt[heads[m_src]] = -1;
-        prv[heads[m_src]] = -1;
-
-        // count 변경
-        counts[m_src]++;
-        counts[m_dst]--;
-    }
-
-    // dst가 비어있는 경우
-    else if (heads[m_dst] == -1)
-    {
-        // src의 head가 dst로 이동한다
-        heads[m_dst] = tails[m_dst] = heads[m_src];
-
-        // src의 head는 기존 head의 다음이 된다
-        // 만약 src의 head가 tail이라면 tail도 변경
-        if (heads[m_src] == tails[m_src])
-        {
-            heads[m_src] = -1;
-            tails[m_src] = -1;
-            // prv, nxt는 변경할 필요 X
-        }
-        // 아니라면 head만 변경
-        else
-        {
-            heads[m_src] = nxt[heads[m_src]];
-            prv[heads[m_src]] = -1; // head가 되었으므로 이전은 없음
-        }
-
-        // dst의 head가 되었으므로 이전, 이후 모두 없음
-        nxt[heads[m_dst]] = -1;
-        prv[heads[m_dst]] = -1;
-
-        // count 변경
-        counts[m_src]--;
-        counts[m_dst]++;
-    }
-
-    // 둘 다 비어있지 않은 경우
-    else
-    {
-        int src_head = heads[m_src];
-        int dst_head = heads[m_dst];
-
-        // 서로의 head를 swap
-        heads[m_src] = dst_head;
-        heads[m_dst] = src_head;
-
-        // src의 head가 tail이라면 tail도 변경
-        if (src_head == tails[m_src])
-        {
-			tails[m_src] = dst_head;
-		}
-
-        // dst의 head가 tail이라면 tail도 변경
-		if (dst_head == tails[m_dst])
-		{
-            tails[m_dst] = src_head;
-        }
-
-        // 서로 head의 이후 변경
-		int src_nxt = nxt[src_head];
-        int dst_nxt = nxt[dst_head];
-
-        nxt[src_head] = dst_nxt;
-        nxt[dst_head] = src_nxt;
-    }
-    
-    cout << counts[m_dst] << endl;
-}
-
-void Divide()
-{
-    int m_src, m_dst;
-    cin >> m_src >> m_dst;
-
-    // m_src 내 선물 개수가 1개 이하라면 옮기지 않음
-    if (counts[m_src] <= 1)
+    if (counts[m_src] == 0 && counts[m_dst] == 0)
     {
         cout << counts[m_dst] << endl;
         return;
     }
 
-    // 옮겨질 개수
-    int cnt = counts[m_src] / 2;
-
-    // 개수 먼저 갱신
-    counts[m_src] -= cnt;
-    counts[m_dst] += cnt;
-
-    int cur = heads[m_src];
-
-    // src의 head를 cnt만큼 dst로 옮김
-    for (int i = 0; i < cnt; i++)
+    else if (counts[m_src] == 0)
     {
-        cur = nxt[cur];
+        // dst -> src 하나 이동
+        int dst_head = heads[m_dst];
+
+        if (counts[m_dst] == 1) // dst 벨트에 물건이 하나만 존재하는 경우
+        {
+			heads[m_dst] = -1;
+			tails[m_dst] = -1;
+		}
+        else
+        {
+			heads[m_dst] = nxt[dst_head];
+            prv[heads[m_dst]] = -1;
+		}
+
+        heads[m_src] = dst_head;
+        tails[m_src] = dst_head;
+        prv[heads[m_src]] = -1;
+        nxt[heads[m_src]] = -1;
+
+        counts[m_src] = 1;
+        counts[m_dst] -= 1;
     }
 
-    // dst의 head가 비어있다면
-    if (heads[m_dst] == -1)
+    else if (counts[m_dst] == 0)
     {
-		heads[m_dst] = heads[m_src];
-        tails[m_dst] = prv[cur];
+		// src -> dst 하나 이동
+		int src_head = heads[m_src];
+
+		if (counts[m_src] == 1) // src 벨트에 물건이 하나만 존재하는 경우
+		{
+            heads[m_src] = -1;
+            tails[m_src] = -1;
+        }
+        else
+        {
+			heads[m_src] = nxt[src_head];
+			prv[heads[m_src]] = -1;
+		}
+
+        heads[m_dst] = src_head;
+        tails[m_dst] = src_head;
+        prv[heads[m_dst]] = -1;
+        nxt[heads[m_dst]] = -1;
+
+        counts[m_dst] = 1;
+        counts[m_src] -= 1;
     }
 
-    // dst의 head가 비어있지 않다면
     else
     {
-		// src의 tail을 dst의 head 앞에 연결
-		nxt[prv[cur]] = heads[m_dst];
-		prv[heads[m_dst]] = prv[cur];
+        // src <-> dst
+        int src_head = heads[m_src];
+        int dst_head = heads[m_dst];
 
-		// dst의 head 변경
-		heads[m_dst] = heads[m_src];
+        if (counts[m_src] == 1)
+        {
+            heads[m_src] = dst_head;
+            tails[m_src] = dst_head;
+            prv[heads[m_src]] = -1;
+            nxt[tails[m_src]] = -1;
+        }
+        else
+        {
+            heads[m_src] = dst_head;
+            prv[heads[m_src]] = -1;
+            nxt[heads[m_src]] = nxt[src_head];
+            prv[nxt[heads[m_src]]] = heads[m_src];
+		}
+        
+        if (counts[m_dst] == 1)
+        {
+            heads[m_dst] = src_head;
+			tails[m_dst] = src_head;
+			prv[heads[m_dst]] = -1;
+			nxt[tails[m_dst]] = -1;
+        }
+        else
+        {
+            heads[m_dst] = src_head;
+			prv[heads[m_dst]] = -1;
+			nxt[heads[m_dst]] = nxt[dst_head];
+			prv[nxt[heads[m_dst]]] = heads[m_dst];
+        }
     }
 
-    // src의 head 변경
-    heads[m_src] = cur;
-    prv[cur] = -1;
-
     cout << counts[m_dst] << endl;
+}
+
+void Divide()
+{
+	int m_src, m_dst;
+	cin >> m_src >> m_dst;
+
+    if (counts[m_src] <= 1)
+    {
+		cout << counts[m_dst] << endl;
+		return;
+	}
+
+    int cnt = counts[m_src] / 2;
+
+    int tmp_head = heads[m_src];
+    int tmp_tail = heads[m_src];
+
+    for (int i = 0; i < cnt - 1; i++)
+        tmp_tail = nxt[tmp_tail];
+
+    heads[m_src] = nxt[tmp_tail];
+    prv[heads[m_src]] = -1;
+    nxt[tmp_tail] = -1;
+
+    if (counts[m_dst] == 0)
+    {
+        // dst 벨트에 물건이 없는 경우
+        heads[m_dst] = tmp_head;
+        tails[m_dst] = tmp_tail;
+        prv[heads[m_dst]] = -1;
+        nxt[tails[m_dst]] = -1;
+    }
+    else
+    {
+        // dst 벨트에 물건이 있는 경우
+        prv[heads[m_dst]] = tmp_tail;
+        nxt[tmp_tail] = heads[m_dst];
+
+        heads[m_dst] = tmp_head;
+        prv[heads[m_dst]] = -1;
+    }
+
+    counts[m_dst] += cnt;
+    counts[m_src] -= cnt;
+
+    cout << counts[m_dst] << endl;   
 }
 
 void GetGiftInfo()
