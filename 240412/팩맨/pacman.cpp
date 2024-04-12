@@ -114,6 +114,7 @@ void backtracking(int mcnt, pair<int,int> pm, string path, vector<vector<bool>>&
         }
         else if (sum == mx)
         {
+            if (mpath == "") mpath = path;
             mpath = min(path, mpath);
         }
         return;
@@ -192,10 +193,6 @@ void CompleteMonsterCopy()
     }
     eggs.clear();
 }
-
-
-
-
 
 int main() {
     // 여기에 코드를 작성해주세요.
