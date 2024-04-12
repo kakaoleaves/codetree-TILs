@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <deque>
+#include <unordered_map>
 
 using namespace std;
 
@@ -17,11 +18,12 @@ struct Monster
     int d;
 };
 
-vector<Monster> monsters(10);
+int key = 1;
+unordered_map<int, Monster> monsters;
 vector<Monster> eggs;
 
 // 몬스터 위치 기록
-vector<vector<int>> monster_grid(5, vector<int>(5));
+vector<vector<deque<int>>> monster_grid(5, vector<deque<int>>(5));
 
 // 시체의 남은 턴 수 기록
 vector<vector<int>> body(5, vector<int>(5));
@@ -40,13 +42,13 @@ void Init()
     cin >> m >> t;
     cin >> pacman.first >> pacman.second;
 
-    monsters.resize(m);
-
     for (int i = 0; i < m; i++)
     {
         int r, c, d;
         cin >> r >> c >> d;
-        monsters[i] = { r, c, d };
+        monsters[key] = { r, c, d };
+        monster_grid[r][c].push_back(key);
+        key++;
     }
 }
 
@@ -58,14 +60,19 @@ void Conclude()
 void TryMonsterCopy()
 {
     // 자신 위치와 방향을 가진 알을 생성
-    eggs = monsters;
+    for (auto& _monster : monsters)
+    {
+        eggs.push_back(_monster.second);
+    }
 }
 
 void MoveMonster()
 {
     // 자신이 가진 방향대로 한 칸 이동
-    for (auto& monster : monsters)
+    for (auto& _monster : monsters)
     {
+        auto& m_id = _monster.first;
+        auto& monster = _monster.second;
         for (int i = 0; i < 8; i++)
         {
             int nr = monster.r + monster_dr[monster.d];
@@ -86,8 +93,10 @@ void MoveMonster()
                 continue;
             }
 
+            monster_grid[monster.r][monster.c].pop_front();
             monster.r = nr;
             monster.c = nc;
+            monster_grid[nr][nc].push_back(m_id);
 
             break;
         }
@@ -121,7 +130,7 @@ void backtracking(int mcnt, pair<int,int> pm, string path, vector<vector<bool>>&
         if (nr < 1 || nr > 4 || nc < 1 || nc > 4) continue;
 
         int next_sum = sum;
-        if (!visited[nr][nc]) next_sum += monster_grid[nr][nc];
+        if (!visited[nr][nc]) next_sum += monster_grid[nr][nc].size();
         visited[nr][nc] = true;
 
         backtracking(mcnt + 1, {nr, nc}, path + to_string(i), visited, next_sum, mx, mpath);
@@ -133,14 +142,6 @@ void backtracking(int mcnt, pair<int,int> pm, string path, vector<vector<bool>>&
 
 void MovePacman()
 {
-    monster_grid.assign(5, vector<int>(5));
-
-    // 격자 위치별 몬스터 개수
-    for (auto& monster: monsters)
-    {
-        monster_grid[monster.r][monster.c]++;
-    }
-
     // 3칸 이동 (몬스터를 가장 많이 먹을 수 있는 방향)
     // 상좌하우 우선순위
 
@@ -153,39 +154,23 @@ void MovePacman()
 
     backtracking(0, pacman, path, visited, 0, mx, path);
 
-    vector<int> eaten;
     for (auto& c : path)
     {
         int idx = c - '0';
         pacman.first += pacman_dr[idx];
         pacman.second += pacman_dc[idx];
 
-        if (monster_grid[pacman.first][pacman.second] > 0)
+        if (!monster_grid[pacman.first][pacman.second].empty())
         {
-            for (int i = 0; i < monsters.size(); i++)
+            for (const auto& id : monster_grid[pacman.first][pacman.second])
             {
-                auto& monster = monsters[i];
-                if (monster.r == pacman.first && monster.c == pacman.second)
-                    eaten.push_back(i);
+                monsters.erase(id);
             }
 
-            // 몬스터 먹으면 시체
-            // 알 X, 이동과정에서만 먹음
             body[pacman.first][pacman.second] = 2;
+            monster_grid[pacman.first][pacman.second].clear();
         }
     }
-
-    if (!eaten.empty())
-    {
-        vector<Monster> tmp;
-        for (int i = 0; i < monsters.size(); i++)
-        {
-            if (find(eaten.begin(), eaten.end(), i) != eaten.end()) continue;
-            tmp.push_back(monsters[i]);
-        }
-        monsters = tmp;
-    }
-
 }
 
 void DestroyMonsterBody()
@@ -199,7 +184,12 @@ void DestroyMonsterBody()
 void CompleteMonsterCopy()
 {
     // 알이었던 몬스터 부화
-    monsters.insert(monsters.end(), eggs.begin(), eggs.end());
+    for (const auto& egg: eggs)
+    {
+        monster_grid[egg.r][egg.c].push_back(key);
+        monsters[key] = egg;
+        key++;
+    }
     eggs.clear();
 }
 
